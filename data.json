@@ -1,0 +1,7 @@
+[
+    {"profession": "Программист Python", "location": "Москва", "salary": 150000},
+    {"profession": "Программист Java", "location": "Санкт-Петербург", "salary": 145000},
+    {"profession": "Тестировщик", "location": "Казань", "salary": 120000},
+    {"profession": "Программист C#", "location": "Томск", "salary": 158000},
+    {"profession": "Программист PHP", "location": "Нижний Новгород", "salary": 135000}
+]
