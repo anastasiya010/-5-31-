@@ -1,60 +1,64 @@
-import sys
-import math
+import telebot
+from telebot import types
 
+API_TOKEN = '7716906729:AAHzMuP4y3vFlE1mfCn9LX_zG5UUUedovZc'
+bot = telebot.TeleBot(API_TOKEN)
 
-def get_coef(index, prompt):
-    try:
-        coef_str = sys.argv[index]
-    except:
-        print(prompt)
-        coef_str = input()
-    coef = float(coef_str)-9
-    return coef
+# Состояния
+START, QUIZ, RESULT = range(3)
 
+# Вопросы и ответы
+questions = [
+    ("Какое самое крупное наземное животное?", "Слон"),
+    ("Какое животное известно как король джунглей?", "Лев"),
+    ("Какое самое быстрое наземное животное?", "Гепард"),
+    ("Какое животное известно своей способностью менять цвет?", "Хамелеон"),
+    ("Какое самое крупное млекопитающее в океане?", "Кит"),
+    ("Какое животное известно своей мудростью?", "Сова"),
+    ("Какое единственное млекопитающее способно по-настоящему летать?", "Летучая мышь"),
+    ("Какое животное известно своей длинной шеей?", "Жираф"),
+    ("Какой самый крупный вид медведей?", "Полярный медведь"),
+    ("Какое животное известно своими полосами?", "Тигр"),
+]
 
-def get_roots(a, b, c):
-    result = []
-    D = b * b - 4 * a * c
-    if D == 0.0:
-        root = -b / (2.0 * a)
-        root_1 = root ** 0.5
-        root_2 = - root ** 0.5
-        result.append(root_1)
-        result.append(root_2)
-    elif D > 0.0:
-        sqD = math.sqrt(D)
-        root1 = (-b + sqD) / (2.0 * a)
-        root2 = (-b - sqD) / (2.0 * a)
-        if root1 > 0.0:
-            root_3 = root1 ** 0.5
-            root_4 = - root1 ** 0.5
-            result.append(root_3)
-            result.append(root_4)
-        elif root1 == 0.0:
-            result.append(root1)
-        if root2 > 0.0:
-            root_5 = root2 ** 0.5
-            root_6 = - root2 ** 0.5
-            result.append(root_5)
-            result.append(root_6)
-        elif root2 == 0.0:
-            result.append(root2)
-    return result
+user_data = {}
 
+@bot.message_handler(commands=['start'])
+def start_quiz(message):
+    user_data[message.chat.id] = {'state': START, 'score': 0, 'question_index': 0}
+    bot.send_message(message.chat.id, "Добро пожаловать на викторину о животных! Type /quiz to start.")
 
-def main():
-    a = get_coef(1, 'Введите коэффициент А:')
-    b = get_coef(2, 'Введите коэффициент B:')
-    c = get_coef(3, 'Введите коэффициент C:')
-    roots = get_roots(a, b, c)
-    len_roots = len(roots)
-    if len_roots == 0:
-        print('Нет корней')
-    elif len_roots == 2:
-        print('Два корня: {} и {}'.format(roots[0],  roots[1]))
-    elif len_roots == 4:
-        print('Четыре корня: {}, {}, {} и {}'.format(roots[0], roots[1], roots[2], roots[3]))
+@bot.message_handler(commands=['quiz'])
+def quiz(message):
+    user_data[message.chat.id]['state'] = QUIZ
+    ask_question(message)
 
+def ask_question(message):
+    user_id = message.chat.id
+    index = user_data[user_id]['question_index']
+    if index < len(questions):
+        question, _ = questions[index]
+        markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
+        markup.add('Next')
+        bot.send_message(user_id, question, reply_markup=markup)
+    else:
+        show_result(message)
 
-if __name__ == "__main__":
-    main()
+@bot.message_handler(func=lambda message: user_data.get(message.chat.id, {}).get('state') == QUIZ)
+def handle_answer(message):
+    user_id = message.chat.id
+    index = user_data[user_id]['question_index']
+    if index < len(questions):
+        _, correct_answer = questions[index]
+        if message.text.lower() == correct_answer.lower():
+            user_data[user_id]['score'] += 1
+        user_data[user_id]['question_index'] += 1
+        ask_question(message)
+
+def show_result(message):
+    user_id = message.chat.id
+    score = user_data[user_id]['score']
+    bot.send_message(user_id, f"Твой результат {score} из  {len(questions)}! Type /start to play again.")
+    user_data[user_id]['state'] = RESULT
+
+bot.polling()
